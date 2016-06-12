@@ -1,0 +1,359 @@
+En este tutorial, vamos a expandir nuestros <a href="http://www.aalmunia.net/blog/2016/06/10/primeros-pasos-con-allegro-5/" target="_blank">primeros pasos con Allegro 5</a>, agregando una nueva clase a nuestra caja de herramientas. Ya tenemos Application, y ahora, agregaremos AppBitmap, una clase que nos servirá para gestionar imágenes.
+<!--more-->
+De momento, vamos a implementar la siguiente funcionalidad: Crearemos una aplicación de tamaño 600x600, y cargaremos 4 imágenes de 300x300 cada una, y cuando esto esté hecho, guardaremos la composición como una imagen completa. Para animar un poco el ejercicio, he decidido usar cuatro imágenes de Vivien Leight, una mujer muy atractiva y personal musa del que suscribe (¿quién dijo que programar es aburrido?), así al menos vemos algo mas agradable que docenas de líneas de código fuente.
+
+El código para el ejercicio está en el siguiente repositorio de GitHub: 
+
+Lo primero, es que vamos a usar las clases <b>BaseApplication</b> y <b>Application</b> de nuestro tutorial anterior, así que copiamos los .h y .cpp a nuestro nuevo proyecto. Mas adelante veremos como no tener que copiar los archivos cada vez que los queramos reutilizar. Lo primero, vamos a implementar una clase llamada <b>AppBitmap</b>, que contendrá las funcionalidades que necesitamos. Veamos el código de su especificación:
+
+<figure>
+  <figcaption class="filenameCode">AppBitmap.h</figcaption>
+  <pre class="EnlighterJSRAW" data-enlighter-language="cpp">
+#pragma once
+#ifndef BASE_BITMAP_H
+#define BASE_BITMAP_H
+
+#include &lt;string&gt;
+#include &lt;allegro5\allegro.h&gt;
+#include &lt;allegro5\allegro_image.h&gt;
+
+class AppBitmap
+{
+public:
+	AppBitmap();	
+	AppBitmap(unsigned int iWidth, unsigned int iHeight);
+	AppBitmap(std::string sFilename);
+	void setBitmapWidth(unsigned int iWidth);
+	unsigned int getBitmapWidth();
+	void setBitmapHeight(unsigned int iHeight);
+	unsigned int getBitmapHeight();
+	void setPositionX(float fPosX);
+	float getPositionX();
+	void setPositionY(float fPosY);
+	float getPositionY();
+	void setFilenameLoad(std::string sFilename);
+	std::string getFilenameLoad();
+	void setFilenameSave(std::string sFilename);
+	std::string getFilenameSave();
+	void drawBitmap(ALLEGRO_DISPLAY* pDisplayToDrawTo);
+	void drawBitmap(ALLEGRO_DISPLAY* pDisplayToDrawTo, float fPosX, float fPosY);
+	void saveBitmap();
+	void saveBitmap(std::string sFilename);
+	virtual ~AppBitmap();
+protected:
+	unsigned int m_iBitmapWidth;
+	unsigned int m_iBitmapHeight;
+	float m_fPositionX;
+	float m_fPositionY;
+	std::string m_sFilenameLoad;
+	std::string m_sFilenameSave;
+	ALLEGRO_BITMAP* m_pBitmap;
+};
+
+#endif
+  </pre>
+</figure>
+
+Y ahora, su implementación:
+
+<figure>
+  <figcaption class="filenameCode">AppBitmap.cpp</figcaption>
+  <pre class="EnlighterJSRAW" data-enlighter-language="cpp">
+#include "AppBitmap.h"
+
+AppBitmap::AppBitmap()
+{
+}
+
+AppBitmap::AppBitmap(unsigned int iWidth, unsigned int iHeight)
+{
+	this->m_iBitmapWidth = iWidth;
+	this->m_iBitmapHeight = iHeight;
+	al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
+	this->m_pBitmap = al_create_bitmap(this->m_iBitmapWidth, this->m_iBitmapHeight);
+}
+
+AppBitmap::AppBitmap(std::string sFilename)
+{
+	al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
+	this->m_pBitmap = al_load_bitmap(sFilename.c_str());
+}
+
+void AppBitmap::setBitmapWidth(unsigned int iWidth)
+{
+	this->m_iBitmapWidth = iWidth;
+}
+
+unsigned int AppBitmap::getBitmapWidth()
+{
+	return this->m_iBitmapWidth;
+}
+
+void AppBitmap::setBitmapHeight(unsigned int iHeight)
+{
+	this->m_iBitmapHeight = iHeight;
+}
+
+unsigned int AppBitmap::getBitmapHeight()
+{
+	return this->m_iBitmapHeight;
+}
+
+void AppBitmap::setPositionX(float fPosX)
+{
+	this->m_fPositionX = fPosX;
+}
+
+float AppBitmap::getPositionX()
+{
+	return this->m_fPositionX;
+}
+
+void AppBitmap::setPositionY(float fPosY)
+{
+	this->m_fPositionY = fPosY;
+}
+
+float AppBitmap::getPositionY()
+{
+	return this->m_fPositionY;
+}
+
+void AppBitmap::setFilenameLoad(std::string sFilename)
+{
+	this->m_sFilenameLoad = sFilename;
+}
+
+std::string AppBitmap::getFilenameLoad()
+{
+	return this->m_sFilenameLoad;
+}
+
+void AppBitmap::setFilenameSave(std::string sFilename)
+{
+	this->m_sFilenameSave = sFilename;
+}
+
+std::string AppBitmap::getFilenameSave()
+{
+	return this->m_sFilenameSave;
+}
+
+void AppBitmap::drawBitmap(ALLEGRO_DISPLAY * pDisplayToDrawTo)
+{
+	this->drawBitmap(pDisplayToDrawTo, this->m_fPositionX, this->m_fPositionY);
+}
+
+void AppBitmap::drawBitmap(ALLEGRO_DISPLAY * pDisplayToDrawTo, float fPosX, float fPosY)
+{
+	if (pDisplayToDrawTo != NULL) {
+		ALLEGRO_BITMAP* pBackbuffer = al_get_backbuffer(pDisplayToDrawTo);
+		al_set_target_bitmap(pBackbuffer);
+		al_draw_bitmap(this->m_pBitmap, fPosX, fPosY, 0);
+		al_flip_display();
+	}
+
+}
+
+void AppBitmap::saveBitmap()
+{
+	if (this->m_pBitmap != NULL && !this->m_sFilenameSave.empty()) {
+		al_save_bitmap(this->m_sFilenameSave.c_str(), this->m_pBitmap);
+	}
+}
+
+void AppBitmap::saveBitmap(std::string sFilename)
+{
+	if (this->m_pBitmap != NULL) {
+		al_save_bitmap(sFilename.c_str(), this->m_pBitmap);
+	}
+}
+
+
+AppBitmap::~AppBitmap()
+{
+	if (this->m_pBitmap != NULL) {
+		al_destroy_bitmap(this->m_pBitmap);
+	}
+}
+  </pre>
+</figure>
+
+El código de los getters y setters es una gran cantidad de código, pero vamos a centrarnos en los métodos que realmente hacen algo, empezando por los constructores. Tenemos dos de ellos, uno toma dos argumentos de tipo integer, que crearán un bitmap totalmente vacío en memoria. Mas adelante vamos a ver como dibujar sobre un bitmap, pero de momento, el constructor que realmente nos interesa es el segundo. A partir de un nombre de fichero, cargamos la imagen en memoria.
+Veamos ahora los métodos <b>drawBitmap</b>, que están sobrecargados. En esencia, tomamos el objeto display de la aplicación, obtenemos su <b>backbuffer</b>, dibujamos el bitmap en el, y hacemos el cambio de frontbuffer por el backbuffer, llamando a al_flip_display(). 
+
+Es importante entender como se dibuja en Allegro. Tenemos dos elementos en los que poder dibujar, el frontbuffer y el backbuffer. Cada vez que se llama a al_flip_display(), el backbuffer pasa a ser el front, y se copia sobre el front, de tal forma que ahora los dos contienen lo mismo. Si alteramos el buffer que está activo directamente, al llamar a al_flip_display(), dado que el backbuffer NO contenía el nuevo contenido dibujado, no aparecerá.
+
+Resumiendo: Dibujamos en el backbuffer, y luego los cambiamos. Y siempre tenemos que hacerlo así, especialmente si queremos que las animaciones se vean correctamente. De momento nuestro tutorial no tiene animaciones, pero es bueno ir asentando conceptos que necesitaremos en el futuro.
+
+Y por último, tenemos los métodos de guardado y carga, que permiten usar el sistema de archivos como origen de datos para las imágenes. Pero, ¿y la clase Application? ¿ha cambiado? La respuesta es que si, tiene un nuevo método que vamos a ver a continuación:
+
+<figure>
+  <figcaption class="filenameCode">Application.h</figcaption>
+  <pre class="EnlighterJSRAW" data-enlighter-language="cpp">
+void saveBufferAsImage(std::string sFilename);      
+  </pre>
+</figure>
+
+<figure>
+  <figcaption class="filenameCode">Application.cpp</figcaption>
+  <pre class="EnlighterJSRAW" data-enlighter-language="cpp">
+void Application::saveBufferAsImage(std::string sFilename)
+{
+	ALLEGRO_BITMAP* oBackBuffer = al_get_backbuffer(this->m_pDisplay);
+	al_save_bitmap(sFilename.c_str(), oBackBuffer);
+}      
+  </pre>
+</figure>
+
+Es decir, que tomamos el contenido completo del backbuffer, y lo guardamos como una imagen en disco. Muy sencillo. Ahora, veamos el código del programa que nos hemos propuesto al inicio del turoeial:
+
+<figure>
+  <figcaption class="filenameCode">main.cpp</figcaption>
+  <pre class="EnlighterJSRAW" data-enlighter-language="cpp">
+#include &lt;cstdlib&gt;
+#include &lt;string&gt;
+#include &lt;allegro5/allegro.h&gt;
+#include &lt;allegro5/allegro_image.h&gt;
+#include "Application.h"
+#include "AppBitmap.h"
+
+int main(int argc, char** argv) {
+
+	std::string sTitle = "Allegro 5 Bitmap Application";
+	Application* oApp = new Application(600, 600, sTitle);
+	AppBitmap* oBitmap1 = new AppBitmap("vivien1.jpg");
+	AppBitmap* oBitmap2 = new AppBitmap("vivien2.jpg");
+	AppBitmap* oBitmap3 = new AppBitmap("vivien3.jpg");
+	AppBitmap* oBitmap4 = new AppBitmap("vivien4.jpg");
+	oApp->initApp();	
+	oBitmap1->drawBitmap(oApp->getDisplay(), 0.0f, 0.0f);
+	oBitmap2->drawBitmap(oApp->getDisplay(), 300.0f, 0.0f);
+	oBitmap3->drawBitmap(oApp->getDisplay(), 0.0f, 300.0f);
+	oBitmap4->drawBitmap(oApp->getDisplay(), 300.0f, 300.0f);
+	std::string sSaveBuffer = "mymuse.jpg";
+	oApp->saveBufferAsImage(sSaveBuffer);
+	oApp->mainLoop();	
+	delete oBitmap1;
+	delete oBitmap2;
+	delete oBitmap3;
+	delete oBitmap4;
+	delete oApp;
+	return 0;
+
+}      
+  </pre>
+</figure>
+
+Bastante sencillo de entender, ¿no? Inicializamos nuestra aplicación, y vamos creando objetos AppBitmap, en los que cargamos las cuatro imágenes. Los dibujamos en forma de collage en la aplicación, y una vez está hecho esto, guardamos el contenido del backbuffer como una imagen. Como cada vez que llamamos a drawBitmap hay una llamada a al_flip_display(), no hay problema, el backbuffer contiene todas las imágenes. 
+No obstante, nuestro programa carece de la extensibilidad que podemos querer utilizar. Queremos que el objeto Applciation tenga los objetos AppBitmap como propiedad, así como poder inicializar un grupo de ellos a partir de una lista de ficheros, o simplemente vacíos, con el tamaño que especifiquemos por defecto.
+
+Vamos a modificar el código de nuestro objeto Application para contemplar este cambio que queremos. No obstante, siendo como es una funcionalidad que vamos a querer en todas las aplicaciones que realicemos de ahora en adelante, no modificaremos la clase Application, sino su clase base <b>BaseApplication</b>. Veamos los cambios que vamos a agregar, a la clase BaseApplication:
+
+<figure>
+  <figcaption class="filenameCode">BaseApplication.h</figcaption>
+  <pre class="EnlighterJSRAW" data-enlighter-language="cpp">
+public:
+    void setNewBitmapSize(unsigned int iWidth, unsigned int iHeight);
+	std::vector<unsigned int> getNewBitmapSize();
+	void initFileBitmaps(std::vector<std::string> vecFilenames);
+	void initEmptyBitmaps(unsigned int iHowMany);
+protected:
+    std::vector<AppBitmap*> m_vecBitmaps;
+	unsigned int m_iNewBitmapWidth;
+	unsigned int m_iNewBitmapHeight;      
+  </pre>
+</figure>
+
+Y la implementación de la especificación:
+
+<figure>
+  <figcaption class="filenameCode">BaseApplication.cpp</figcaption>
+  <pre class="EnlighterJSRAW" data-enlighter-language="cpp">
+void BaseApplication::setNewBitmapSize(unsigned int iWidth, unsigned int iHeight) {
+	this->m_iNewBitmapWidth = iWidth;
+	this->m_iNewBitmapHeight = iHeight;
+}
+
+std::vector<unsigned int> BaseApplication::getNewBitmapSize() {
+	std::vector<unsigned int> vecReturn;
+	vecReturn.push_back(this->m_iNewBitmapWidth);
+	vecReturn.push_back(this->m_iNewBitmapHeight);
+	return vecReturn;
+}
+
+void BaseApplication::initFileBitmaps(std::vector<std::string> vecFilenames) {
+	for (unsigned int i = 0; i < vecFilenames.size(); i++) {
+		AppBitmap* oBitmap = new AppBitmap(vecFilenames[i]);
+		this->m_vecBitmaps.push_back(oBitmap);
+	}
+}
+
+void BaseApplication::initEmptyBitmaps(unsigned int iHowMany) {
+	for (unsigned int i = 0; i < iHowMany; i++) {
+		AppBitmap* oBitmap = new AppBitmap(this->m_iNewBitmapWidth, this->m_iNewBitmapHeight);
+		this->m_vecBitmaps.push_back(oBitmap);
+	}
+}
+
+void BaseApplication::setBitmapPosition(int iBitmap, float fPosX, float fPosY) {
+	this->m_vecBitmaps[iBitmap]->setPositionX(fPosX);
+	this->m_vecBitmaps[iBitmap]->setPositionY(fPosY);
+}
+
+void BaseApplication::drawBitmap(int iBitmap) {
+	float fPosX = this->m_vecBitmaps[iBitmap]->getPositionX();
+	float fPosY = this->m_vecBitmaps[iBitmap]->getPositionY();
+	this->m_vecBitmaps[iBitmap]->drawBitmap(this->m_pDisplay, fPosX, fPosY);	
+}
+
+void BaseApplication::drawAllBitmaps() {
+	for (unsigned int i = 0; i < this->m_vecBitmaps.size(); i++) {
+		this->drawBitmap(i);
+	}
+	al_flip_display();
+}      
+  </pre>
+</figure>
+
+Y también hemos realizado cambios en la clase AppBitmap. En esencia, le hemos agregado una variable boolean, que realiza la llamada a al_flip_display() tras llamar a al_draw_bitmap(). Si hemos ejecutado el prgrama anterior un par de veces, habremos notado que las imágenes se van dibujando una a una, habiendo un pequeño, pero notable, tiempo entre una y otra. Este efecto no es el deseado, así que, creamos un método <b>drawAllBitmaps()</b>, que realiza la llamada a al_flip_diplay(), DESPUES de haber dibujado toda la colección de bitmaps contenida en la propiedad <b>BaseApplication::vecBitmaps</b>, que es de tipo std::vector&lt;AppBitmap&gt;, es decir, una colección de objetos AppBitmap, contenidos en una estructura de tipo array unidimensional.
+
+El programa tambien contiene cambios:
+
+ <figure>
+  <figcaption class="filenameCode">main.cpp</figcaption>
+  <pre class="EnlighterJSRAW" data-enlighter-language="cpp">
+#include &lt;cstdlib&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+#include &lt;allegro5/allegro.h&gt;
+#include &lt;allegro5/allegro_image.h&gt;
+#include "Application.h"
+
+int main(int argc, char** argv) {
+
+	std::string sTitle = "Allegro 5 Bitmap Application";
+	Application* oApp = new Application(600, 600, sTitle);
+	std::vector<std::string> vecFilenames;	
+	vecFilenames.push_back("vivien1.jpg");
+	vecFilenames.push_back("vivien2.jpg");
+	vecFilenames.push_back("vivien3.jpg");
+	vecFilenames.push_back("vivien4.jpg");
+	oApp->initApp();	
+	oApp->initFileBitmaps(vecFilenames);
+	oApp->setBitmapPosition(0, 0.0f, 0.0f);
+	oApp->setBitmapPosition(1, 300.0f, 0.0f);
+	oApp->setBitmapPosition(2, 0.0f, 300.0f);
+	oApp->setBitmapPosition(3, 300.0f, 300.0f);	
+	oApp->drawAllBitmaps();
+	oApp->mainLoop();
+	delete oApp;
+	return 0;
+
+}            
+  </pre>
+ </figure>
+ 
+ En realidad, no hemos ganado tanto desde el código anterior, pero esto es bastante mas reutilizable que lo anterior.
+ 
+ Y de momento, aquí nos quedamos, recomiendo trastear con el código de este tutorial, así como mirar la referencia de Allegro 5 en profundidad. En el siguiente tutorial, vamos a aprender (por fin), a hacer algo interactivo, para lo que necesitaremos el código de este ejercicio.
